@@ -1,0 +1,8 @@
+{
+  "name": "Remix RepliLite - Online IDE \u0026 AI Workspace",
+  "description": "Un clone minimaliste et puissant de Replit avec éditeur multi-fichiers, terminal interactif, exécution JavaScript \u0026 Python et assistant IA Gemini \u0026 Hugging Face.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
