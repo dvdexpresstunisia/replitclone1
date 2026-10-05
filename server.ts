@@ -517,6 +517,27 @@ ${currentCode}
 Inclus les cas normaux et les cas limites (edge cases).`;
         break;
 
+      case "analyze":
+        systemInstruction += " Tu es un ingénieur logiciel senior et analyste de code IA. Tu synthétises de manière limpide et concise le rôle d'un fichier et ses fonctions clés.";
+        userPrompt = `Analyse le fichier '${fileName}' (${language}):
+\`\`\`${language}
+${currentCode.slice(0, 15000)}
+\`\`\`
+
+Rédige une synthèse concise, élégante et structurée en français selon ce format exact :
+### 🎯 Objectif du fichier
+[1 à 2 phrases précises expliquant le rôle et la finalité de ce fichier]
+
+### ⚡ Fonctions & Éléments clés
+[3 à 5 puces décrivant les fonctions, classes ou blocs principaux et leur utilité]
+
+### 📦 Architecture & Dépendances
+[Bibliothèques importées et intégration dans l'application]
+
+### 💡 Points d'attention
+[Une remarque technique concise sur la qualité, la performance ou l'extensibilité]`;
+        break;
+
       case "generate":
       default:
         systemInstruction += " Tu écris du code propre, moderne et immédiatement exécutable.";
@@ -606,6 +627,56 @@ Fournis le code prêt à l'emploi.`;
     console.error("Erreur /api/ai/ghostwriter:", error);
     return res.status(500).json({
       error: error?.message || "Erreur interne lors de l'exécution de l'assistant.",
+    });
+  }
+});
+
+// Dedicated AI File Analysis Endpoint using Gemini
+app.post("/api/ai/analyze-file", async (req, res) => {
+  try {
+    const { fileName = "fichier", content = "", language = "text" } = req.body;
+
+    const systemInstruction =
+      "Tu es un ingénieur logiciel principal et analyste d'architecture de code IA. Tu rédiges des synthèses claires, concises et professionnelles du rôle du fichier et de ses fonctions clés.";
+
+    const userPrompt = `Analyse le fichier '${fileName}' (langage: ${language}) :
+\`\`\`${language}
+${content.slice(0, 18000)}
+\`\`\`
+
+Rédige une analyse synthétique structurée en français avec le format exact suivant :
+### 🎯 Objectif du fichier
+Explique en 1 à 2 phrases précises la raison d'être et le rôle de ce fichier dans l'application.
+
+### ⚡ Fonctions & Éléments clés
+- Liste à puces des fonctions, classes ou variables exported/essentielles avec une explication succincte de ce qu'elles font.
+
+### 📦 Architecture & Dépendances
+Mentionne les modules ou dépendances clés utilisés et comment ce fichier s'intègre au reste du projet.
+
+### 💡 Points clés & Suggestions
+1 remarque technique ou conseil d'amélioration rapide.`;
+
+    if (!ai) {
+      const lines = content.split("\n").length;
+      return res.json({
+        summary: `### 🎯 Objectif du fichier\nLe fichier \`${fileName}\` contient la logique ${language} (${lines} lignes) du projet.\n\n### ⚡ Fonctions & Éléments clés\n• Structure principale et déclarations de module.\n• Traitement des données et routines d'exécution.\n\n### 📦 Architecture & Dépendances\nFichier source interne au workspace RepliLite.`,
+        provider: "fallback",
+      });
+    }
+
+    const response = await generateGeminiWithFallback(ai, {
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      systemInstruction,
+      temperature: 0.2,
+    });
+
+    const summary = response.text || "Analyse indisponible.";
+    return res.json({ summary, provider: "gemini" });
+  } catch (error: any) {
+    console.error("Erreur /api/ai/analyze-file:", error);
+    return res.status(500).json({
+      error: error?.message || "Erreur lors de l'analyse du fichier par Gemini.",
     });
   }
 });

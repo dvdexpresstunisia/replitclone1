@@ -1889,6 +1889,10 @@ export default function App() {
                 gitStatusMap={gitStatusMap}
                 deletedGitFiles={deletedGitFiles}
                 onRestoreDeletedFile={handleRestoreDeletedFile}
+                onOpenInAIChat={(prompt) => {
+                  setShowAIPanel(true);
+                  handleSendAIMessage(prompt);
+                }}
               />
             ) : (
               <GitPanel

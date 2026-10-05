@@ -12,11 +12,13 @@ import {
   GitCommit,
   Copy,
   Clock,
-  RotateCcw
+  RotateCcw,
+  Sparkles
 } from "lucide-react";
 import { ProjectFile } from "../types";
 import { getLanguageInfo } from "../utils/language";
 import { FileLanguageIcon } from "./FileLanguageIcon";
+import { AIFileAnalysisPopover } from "./AIFileAnalysisPopover";
 
 export type GitFileStatus = "modified" | "created" | "deleted" | "unmodified";
 
@@ -36,6 +38,7 @@ interface FileTreeProps {
   gitStatusMap?: Record<string, GitFileStatus>;
   deletedGitFiles?: DeletedGitFile[];
   onRestoreDeletedFile?: (file: DeletedGitFile) => void;
+  onOpenInAIChat?: (prompt: string) => void;
 }
 
 export const FileTree: React.FC<FileTreeProps> = ({
@@ -49,10 +52,12 @@ export const FileTree: React.FC<FileTreeProps> = ({
   gitStatusMap = {},
   deletedGitFiles = [],
   onRestoreDeletedFile,
+  onOpenInAIChat,
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newFileName, setNewFileName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [analysisFile, setAnalysisFile] = useState<ProjectFile | null>(null);
   const [editingName, setEditingName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -139,16 +144,30 @@ export const FileTree: React.FC<FileTreeProps> = ({
         <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
           Fichiers
         </span>
-        <button
-          onClick={() => {
-            setIsCreating(true);
-            setNewFileName("");
-          }}
-          title="Nouveau fichier"
-          className="p-1 rounded text-gray-400 hover:text-white hover:bg-[#1f2736] transition cursor-pointer"
-        >
-          <FilePlus className="w-3.5 h-3.5 text-[#f26207]" />
-        </button>
+        <div className="flex items-center gap-1">
+          {/* AI File Analysis Button in Header */}
+          <button
+            onClick={() => {
+              const target = files.find((f) => f.id === activeFileId) || files[0];
+              if (target) setAnalysisFile(target);
+            }}
+            title="AI File Analysis : Analyser le fichier actif avec Gemini"
+            className="p-1 rounded text-purple-400 hover:text-purple-200 hover:bg-purple-950/50 border border-transparent hover:border-purple-800/40 transition cursor-pointer flex items-center gap-1"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+          </button>
+
+          <button
+            onClick={() => {
+              setIsCreating(true);
+              setNewFileName("");
+            }}
+            title="Nouveau fichier"
+            className="p-1 rounded text-gray-400 hover:text-white hover:bg-[#1f2736] transition cursor-pointer"
+          >
+            <FilePlus className="w-3.5 h-3.5 text-[#f26207]" />
+          </button>
+        </div>
       </div>
 
       {/* Git Status Indicator Summary Bar */}
@@ -338,13 +357,25 @@ export const FileTree: React.FC<FileTreeProps> = ({
                   </span>
                 )}
 
-                {/* Action buttons (Rename, Context Menu) - Shown on hover */}
+                {/* Action buttons (AI Analysis, Context Menu) - Shown on hover */}
                 {!isEditing && (
                   <div className="hidden group-hover:flex items-center gap-0.5 shrink-0 ml-0.5">
+                    {/* AI File Analysis Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAnalysisFile(file);
+                      }}
+                      title="AI File Analysis : Synthèse et fonctions clés (Gemini)"
+                      className="p-1 rounded text-purple-400 hover:text-white hover:bg-purple-950/70 border border-transparent hover:border-purple-700/50 transition cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3 text-purple-400" />
+                    </button>
+
                     <button
                       onClick={(e) => handleContextMenuOpen(e, file.id)}
                       title="Options du fichier (Blame, renommer...)"
-                      className="p-1 rounded text-gray-400 hover:text-white hover:bg-[#283244] transition"
+                      className="p-1 rounded text-gray-400 hover:text-white hover:bg-[#283244] transition cursor-pointer"
                     >
                       <MoreVertical className="w-3 h-3" />
                     </button>
@@ -443,6 +474,18 @@ export const FileTree: React.FC<FileTreeProps> = ({
             <span>Renommer</span>
           </button>
 
+          {/* AI File Analysis option */}
+          <button
+            onClick={() => {
+              setAnalysisFile(contextFile);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-purple-950/60 text-purple-300 hover:text-purple-100 flex items-center gap-2 transition cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span className="font-semibold">AI File Analysis (Gemini)</span>
+          </button>
+
           {files.length > 1 && (
             <button
               onClick={() => {
@@ -465,6 +508,14 @@ export const FileTree: React.FC<FileTreeProps> = ({
         <span>{files.length} fichier{files.length > 1 ? "s" : ""}</span>
         <span className="text-[#f26207] font-semibold">RepliLite v1.0</span>
       </div>
+
+      {/* AI File Analysis Popover */}
+      <AIFileAnalysisPopover
+        file={analysisFile}
+        isOpen={!!analysisFile}
+        onClose={() => setAnalysisFile(null)}
+        onOpenInAIChat={onOpenInAIChat}
+      />
     </div>
   );
 };
